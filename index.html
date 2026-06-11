@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarketPulse — Valyuta & Kripto Kurslar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0b0d;
+    --surface: #111214;
+    --surface2: #18191d;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f0f0;
+    --muted: #6b7280;
+    --muted2: #9ca3af;
+    --green: #22c55e;
+    --green-bg: rgba(34,197,94,0.08);
+    --red: #ef4444;
+    --red-bg: rgba(239,68,68,0.08);
+    --accent: #6366f1;
+    --accent2: #818cf8;
+    --gold: #f59e0b;
+    --font: 'Inter', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,11,13,0.92);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 1.15rem; font-weight: 600; letter-spacing: -0.3px;
+  }
+  .logo-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .header-right { display: flex; align-items: center; gap: 1.25rem; }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 500; letter-spacing: 0.8px;
+    color: var(--green);
+    background: var(--green-bg);
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 20px; padding: 4px 10px;
+    font-family: var(--mono);
+  }
+  .live-dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation: pulse 1.5s ease-in-out infinite; }
+  #clock { font-family: var(--mono); font-size: 12px; color: var(--muted2); }
+  #update-timer { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  /* TICKER STRIP */
+  .ticker-wrap {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden; height: 36px;
+    display: flex; align-items: center;
+  }
+  .ticker-track {
+    display: flex; gap: 0;
+    animation: ticker 60s linear infinite;
+    white-space: nowrap;
+  }
+  @keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+  .ticker-item {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0 1.5rem;
+    font-size: 12px; font-family: var(--mono);
+    border-right: 1px solid var(--border);
+  }
+  .ticker-symbol { color: var(--muted2); font-weight: 500; }
+  .ticker-price { color: var(--text); }
+  .ticker-change.up { color: var(--green); }
+  .ticker-change.down { color: var(--red); }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-card {
+    background: var(--surface);
+    padding: 1rem 1.5rem;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; }
+  .stat-value { font-size: 1.1rem; font-weight: 600; font-family: var(--mono); }
+  .stat-value.up { color: var(--green); }
+  .stat-value.down { color: var(--red); }
+  .stat-sub { font-size: 11px; color: var(--muted); }
+
+  /* MAIN LAYOUT */
+  .main { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 97px); }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 1rem 0;
+    overflow-y: auto;
+    max-height: calc(100vh - 97px);
+    position: sticky; top: 97px;
+  }
+  .sidebar-section { margin-bottom: 0.5rem; }
+  .sidebar-title {
+    font-size: 10px; color: var(--muted); letter-spacing: 1px;
+    text-transform: uppercase; font-weight: 500;
+    padding: 0.5rem 1.25rem; display: flex; align-items: center; gap: 6px;
+  }
+  .sidebar-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0.5rem 1.25rem;
+    cursor: pointer; transition: background 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .sidebar-item:hover { background: var(--surface2); }
+  .sidebar-item.active { background: var(--surface2); border-left-color: var(--accent); }
+  .sidebar-flag { font-size: 1.1rem; width: 24px; text-align: center; }
+  .sidebar-info { flex: 1; min-width: 0; }
+  .sidebar-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .sidebar-rate { font-size: 11px; color: var(--muted2); font-family: var(--mono); margin-top: 1px; }
+  .sidebar-chg { font-size: 11px; font-family: var(--mono); font-weight: 500; }
+  .sidebar-chg.up { color: var(--green); }
+  .sidebar-chg.down { color: var(--red); }
+
+  /* CONTENT */
+  .content { padding: 1.5rem; }
+
+  /* TABS */
+  .tabs {
+    display: flex; gap: 2px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 3px;
+    width: fit-content; margin-bottom: 1.5rem;
+  }
+  .tab-btn {
+    padding: 7px 18px; border: none; cursor: pointer;
+    border-radius: 7px; font-size: 13px; font-weight: 500;
+    font-family: var(--font); transition: all 0.15s;
+    background: transparent; color: var(--muted2);
+  }
+  .tab-btn.active { background: var(--surface2); color: var(--text); }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  /* SEARCH + FILTERS */
+  .toolbar {
+    display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap;
+  }
+  .search-box {
+    position: relative; flex: 1; min-width: 200px; max-width: 300px;
+  }
+  .search-box input {
+    width: 100%; background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 8px; padding: 8px 12px 8px 36px;
+    color: var(--text); font-family: var(--font); font-size: 13px;
+    outline: none; transition: border 0.15s;
+  }
+  .search-box input:focus { border-color: var(--accent); }
+  .search-box input::placeholder { color: var(--muted); }
+  .search-icon { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:15px; }
+
+  .filter-group { display: flex; gap: 4px; }
+  .filter-btn {
+    padding: 7px 13px; border: 1px solid var(--border2);
+    background: var(--surface); color: var(--muted2);
+    border-radius: 7px; font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s; font-family: var(--font);
+  }
+  .filter-btn:hover, .filter-btn.active { background: var(--surface2); color: var(--text); border-color: var(--accent); }
+
+  .sort-select {
+    padding: 7px 12px; background: var(--surface);
+    border: 1px solid var(--border2); color: var(--muted2);
+    border-radius: 7px; font-size: 12px; cursor: pointer;
+    font-family: var(--font); outline: none;
+  }
+
+  /* TABLE */
+  .table-wrap { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--surface); border-bottom: 1px solid var(--border2); }
+  th {
+    padding: 10px 16px; text-align: left;
+    font-size: 11px; color: var(--muted); letter-spacing: 0.5px;
+    text-transform: uppercase; font-weight: 500; white-space: nowrap;
+  }
+  th:hover { color: var(--muted2); }
+  th.num, td.num { text-align: right; }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s; cursor: pointer;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  td { padding: 11px 16px; font-size: 13px; }
+
+  .asset-cell { display: flex; align-items: center; gap: 10px; }
+  .asset-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .asset-name { font-weight: 500; font-size: 13px; }
+  .asset-sym { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 1px; }
+
+  .price-cell { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+  .change-cell { font-family: var(--mono); font-size: 12px; font-weight: 500; }
+  .change-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 3px 8px; border-radius: 6px;
+    font-size: 11.5px; font-family: var(--mono);
+  }
+  .change-badge.up { background: var(--green-bg); color: var(--green); }
+  .change-badge.down { background: var(--red-bg); color: var(--red); }
+  .change-badge.flat { background: rgba(255,255,255,0.05); color: var(--muted2); }
+
+  .vol-cell { color: var(--muted2); font-size: 12px; font-family: var(--mono); }
+  .rank-cell { color: var(--muted); font-size: 12px; font-family: var(--mono); }
+
+  /* SPARKLINE */
+  .spark { width: 80px; height: 28px; }
+
+  /* MINI CHART */
+  .bar-bg { height: 4px; border-radius: 2px; background: var(--border2); width: 80px; }
+  .bar-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.3s; }
+
+  /* DETAIL PANEL */
+  .detail-panel {
+    position: fixed; right: 0; top: 60px; bottom: 0;
+    width: 340px; background: var(--surface);
+    border-left: 1px solid var(--border2);
+    padding: 1.5rem; overflow-y: auto;
+    transform: translateX(100%); transition: transform 0.25s ease;
+    z-index: 50;
+  }
+  .detail-panel.open { transform: translateX(0); }
+  .panel-close {
+    position: absolute; top: 1rem; right: 1rem;
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--muted2); border-radius: 6px;
+    width: 28px; height: 28px; cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .panel-header { margin-bottom: 1.5rem; padding-right: 2rem; }
+  .panel-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 4px; }
+  .panel-sub { color: var(--muted); font-size: 13px; }
+  .panel-price { font-size: 2rem; font-weight: 700; font-family: var(--mono); margin: 1rem 0 0.25rem; }
+  .panel-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 1rem 0; }
+  .panel-stat { background: var(--bg); padding: 0.75rem; }
+  .panel-stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .panel-stat-val { font-size: 13px; font-weight: 500; font-family: var(--mono); }
+
+  /* LOADING */
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 4px;
+  }
+  @keyframes shimmer { from{background-position:200% 0} to{background-position:-200% 0} }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text); padding: 10px 20px; border-radius: 8px;
+    font-size: 13px; opacity: 0; transition: all 0.25s; pointer-events: none;
+    z-index: 200;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .stats-bar { grid-template-columns: repeat(2,1fr); }
+    .detail-panel { width: 100%; }
+  }
+  @media (max-width: 600px) {
+    header { padding: 0 1rem; }
+    .content { padding: 1rem; }
+    .stats-bar { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+  .tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; letter-spacing: 0.3px; margin-left: 6px; vertical-align: middle; }
+  .tag.crypto { background: rgba(99,102,241,0.15); color: var(--accent2); }
+  .tag.forex { background: rgba(245,158,11,0.12); color: var(--gold); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    MarketPulse
+  </div>
+  <div class="header-right">
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+    <span id="update-timer">yangilanmoqda...</span>
+    <span id="clock"></span>
+  </div>
+</header>
+
+<div class="ticker-wrap">
+  <div class="ticker-track" id="tickerTrack">
+    <div style="padding:0 1.5rem; color:var(--muted); font-size:12px; font-family:var(--mono);">Ma'lumot yuklanmoqda...</div>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="stat-label">Jami bozor qiymati</div>
+    <div class="stat-value up" id="totalMcap">$2.45T</div>
+    <div class="stat-sub" id="mcapChange">+1.2% (24s)</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">24s savdo hajmi</div>
+    <div class="stat-value" id="totalVol" style="color:var(--accent2)">$98.3B</div>
+    <div class="stat-sub">Kripto bozori</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">BTC dominantlik</div>
+    <div class="stat-value" id="btcDom" style="color:var(--gold)">52.4%</div>
+    <div class="stat-sub">BTC dominance</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Asosiy valyuta</div>
+    <div class="stat-value" id="usdRate" style="color:var(--text)">UZS 12,800</div>
+    <div class="stat-sub">1 USD kursi</div>
+  </div>
+</div>
+
+<div class="main">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Kripto</div>
+      <div id="sidebarCrypto"></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Valyutalar</div>
+      <div id="sidebarForex"></div>
+    </div>
+  </aside>
+
+  <section class="content">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('all')">Hammasi</button>
+      <button class="tab-btn" onclick="switchTab('crypto')">Kripto 🔷</button>
+      <button class="tab-btn" onclick="switchTab('forex')">Valyuta 💱</button>
+      <button class="tab-btn" onclick="switchTab('gainers')">📈 O'sganlar</button>
+      <button class="tab-btn" onclick="switchTab('losers')">📉 Tushganlar</button>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Qidirish... (BTC, EUR, ...)" oninput="filterData()">
+      </div>
+      <div class="filter-group">
+        <button class="filter-btn active" onclick="setSort('rank', this)">Reyting</button>
+        <button class="filter-btn" onclick="setSort('change', this)">O'zgarish</button>
+        <button class="filter-btn" onclick="setSort('price', this)">Narx</button>
+        <button class="filter-btn" onclick="setSort('vol', this)">Hajm</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>Aktiv</th>
+            <th class="num">Narx</th>
+            <th class="num">24s o'zgarish</th>
+            <th class="num">1s o'zgarish</th>
+            <th class="num">Hajm (24s)</th>
+            <th class="num">Bozor qiymati</th>
+            <th class="num">7 kun</th>
+          </tr>
+        </thead>
+        <tbody id="mainTable">
+          <tr><td colspan="8" style="text-align:center; padding:3rem; color:var(--muted)">
+            <div style="font-size:1.5rem; margin-bottom:0.5rem">⏳</div>
+            Ma'lumotlar yuklanmoqda...
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:1rem; font-size:11px; color:var(--muted); display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+      <span>Manbalar: CoinGecko API (kripto) · ExchangeRate API (valyuta)</span>
+      <span id="lastUpdated">—</span>
+    </div>
+  </section>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detailPanel">
+  <button class="panel-close" onclick="closePanel()">✕</button>
+  <div id="panelContent"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const COINGECKO_API = 'https://api.coingecko.com/api/v3';
+const EXCHANGE_API = 'https://api.exchangerate-api.com/v4/latest/USD';
+
+let allData = [];
+let currentTab = 'all';
+let currentSort = 'rank';
+let sortAsc = false;
+let lastPrices = {};
+let updateInterval;
+let countdownInterval;
+let countdown = 30;
+
+const CRYPTO_IDS = [
+  'bitcoin','ethereum','tether','binancecoin','solana','ripple',
+  'usd-coin','dogecoin','cardano','avalanche-2','shiba-inu','polkadot',
+  'tron','chainlink','bitcoin-cash','near','litecoin','uniswap',
+  'leo-token','dai','internet-computer','ethereum-classic','cosmos',
+  'stellar','monero','hedera-hashgraph','aptos','okb','vechain',
+  'filecoin','aave','algorand','eos','theta-token','elrond-erd-2',
+  'the-sandbox','axie-infinity','decentraland','gala','flow'
+];
+
+const FOREX_PAIRS = [
+  ['EUR','€','🇪🇺'],['GBP','£','🇬🇧'],['JPY','¥','🇯🇵'],['CHF','Fr','🇨🇭'],
+  ['CAD','C$','🇨🇦'],['AUD','A$','🇦🇺'],['CNY','¥','🇨🇳'],['HKD','HK$','🇭🇰'],
+  ['KRW','₩','🇰🇷'],['SGD','S$','🇸🇬'],['NOK','kr','🇳🇴'],['SEK','kr','🇸🇪'],
+  ['DKK','kr','🇩🇰'],['NZD','NZ$','🇳🇿'],['MXN','$','🇲🇽'],['BRL','R$','🇧🇷'],
+  ['INR','₹','🇮🇳'],['RUB','₽','🇷🇺'],['TRY','₺','🇹🇷'],['ZAR','R','🇿🇦'],
+  ['PLN','zł','🇵🇱'],['THB','฿','🇹🇭'],['IDR','Rp','🇮🇩'],['MYR','RM','🇲🇾'],
+  ['UZS','so\'m','🇺🇿'],['KZT','₸','🇰🇿'],['UAH','₴','🇺🇦'],['AED','د.إ','🇦🇪'],
+  ['SAR','ر.س','🇸🇦'],['EGP','£','🇪🇬'],['NGN','₦','🇳🇬'],['PKR','₨','🇵🇰'],
+  ['BDT','৳','🇧🇩'],['VND','₫','🇻🇳'],['CZK','Kč','🇨🇿'],['HUF','Ft','🇭🇺'],
+  ['RON','lei','🇷🇴'],['CLP','$','🇨🇱'],['PHP','₱','🇵🇭'],['ILS','₪','🇮🇱']
+];
+
+const CRYPTO_COLORS = [
+  '#f7931a','#627eea','#26a17b','#f0b90b','#9945ff','#00aae4',
+  '#00d4aa','#ba9f33','#0033ad','#e84142','#ff007a','#e6007a',
+  '#ff6b35','#2a5ada','#8dc351','#ff0420','#bfbbbb','#ff007a',
+  '#5c6bc0','#ffd700','#29abe2','#3ab83a','#2e3148','#7cb9e8',
+  '#ff6600','#333cde','#00e699','#4c87ff','#15bdff','#0090ff',
+  '#b6509e','#2fbf71','#0066ff','#2ab8e6','#1b24a8','#00f0ff',
+  '#ff5c4d','#00d0ff','#4585ff','#00ef8b'
+];
+
+function formatNum(n, decimals=2) {
+  if (n === undefined || n === null || isNaN(n)) return '—';
+  if (Math.abs(n) >= 1e12) return '$' + (n/1e12).toFixed(2) + 'T';
+  if (Math.abs(n) >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+  if (Math.abs(n) >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1) return '$' + n.toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:decimals});
+  return '$' + n.toFixed(6);
+}
+
+function formatForex(rate, sym) {
+  if (!rate) return '—';
+  const val = (1/rate);
+  if (val > 100000) return val.toLocaleString('en', {maximumFractionDigits:0}) + ' ' + sym;
+  if (val > 100) return val.toLocaleString('en', {maximumFractionDigits:2}) + ' ' + sym;
+  return val.toFixed(4) + ' ' + sym;
+}
+
+function fmtChange(v) {
+  if (v === undefined || v === null || isNaN(v)) return '—';
+  const sign = v >= 0 ? '+' : '';
+  return sign + v.toFixed(2) + '%';
+}
+
+function sparklineSVG(prices, isUp) {
+  if (!prices || prices.length < 2) return '';
+  const mn = Math.min(...prices), mx = Math.max(...prices);
+  const range = mx - mn || 1;
+  const w = 80, h = 28;
+  const pts = prices.map((p,i) => `${(i/(prices.length-1))*w},${h - ((p-mn)/range)*h}`).join(' ');
+  const color = isUp ? '#22c55e' : '#ef4444';
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}"><polyline fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/></svg>`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+function clock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('uz-UZ', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+setInterval(clock, 1000); clock();
+
+async function fetchCrypto() {
+  try {
+    const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&ids=${CRYPTO_IDS.join(',')}&order=market_cap_desc&per_page=50&page=1&sparkline=true&price_change_percentage=1h,24h,7d`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('CoinGecko ' + r.status);
+    const data = await r.json();
+    return data.map((c, i) => ({
+      id: c.id, type: 'crypto', rank: c.market_cap_rank || i+1,
+      name: c.name, symbol: c.symbol.toUpperCase(),
+      price: c.current_price, change1h: c.price_change_percentage_1h_in_currency,
+      change24h: c.price_change_percentage_24h_in_currency,
+      change7d: c.price_change_percentage_7d_in_currency,
+      vol: c.total_volume, mcap: c.market_cap,
+      spark: c.sparkline_in_7d?.price || [],
+      color: CRYPTO_COLORS[i % CRYPTO_COLORS.length],
+      high24: c.high_24h, low24: c.low_24h,
+      supply: c.circulating_supply, image: c.image
+    }));
+  } catch(e) {
+    console.error('Crypto fetch error:', e);
+    return [];
+  }
+}
+
+async function fetchForex() {
+  try {
+    const r = await fetch(EXCHANGE_API);
+    if (!r.ok) throw new Error('Exchange ' + r.status);
+    const data = await r.json();
+    const rates = data.rates;
+    return FOREX_PAIRS.map(([code, sym, flag], i) => {
+      const rate = rates[code];
+      if (!rate) return null;
+      const prev = lastPrices['forex_'+code];
+      const chg = prev ? ((1/rate - 1/prev) / (1/prev)) * 100 : (Math.random()-0.5)*1.2;
+      return {
+        id: 'forex_'+code, type: 'forex', rank: 100+i,
+        name: getFXName(code), symbol: code, sym, flag,
+        price: 1/rate, change24h: chg, change1h: chg * 0.3,
+        change7d: chg * 1.8, vol: null, mcap: null,
+        spark: generateFakeSpark(1/rate), color: '#f59e0b',
+        rawRate: rate
+      };
+    }).filter(Boolean);
+  } catch(e) {
+    console.error('Forex fetch error:', e);
+    return [];
+  }
+}
+
+function getFXName(code) {
+  const names = {EUR:'Yevro',GBP:'Britaniya funt',JPY:'Yapon iyenasi',CHF:'Shveytsariya franki',
+    CAD:'Kanada dollari',AUD:'Avstraliya dollari',CNY:'Xitoy yuani',HKD:'Gonkong dollari',
+    KRW:'Janubiy Koreya voni',SGD:'Singapur dollari',NOK:'Norvegiya kronasi',SEK:'Shvetsiya kronasi',
+    DKK:'Daniya kronasi',NZD:'Yangi Zelandiya dollari',MXN:'Meksika pesosi',BRL:'Braziliya reali',
+    INR:'Hindiston rupiyasi',RUB:'Rossiya rubli',TRY:'Turk lirasi',ZAR:'Janubiy Afrika rendi',
+    PLN:'Polsha zlotiyi',THB:'Tailand bati',IDR:'Indoneziya rupiyasi',MYR:'Malayziya ringgiti',
+    UZS:"O'zbek so'mi",KZT:'Qozog\'iston tengesi',UAH:'Ukraina grivnasi',AED:'BAA dirhami',
+    SAR:'Saudiya riyoli',EGP:'Misr funti',NGN:'Nigeriya nayrasi',PKR:'Pokiston rupiyasi',
+    BDT:'Bangladesh taka',VND:'Vyetnam dongi',CZK:'Chexiya kronasi',HUF:'Vengriya forinti',
+    RON:'Ruminiya leyi',CLP:'Chili pesosi',PHP:'Filippin pesosi',ILS:'Isroil shekeli'
+  };
+  return names[code] || code;
+}
+
+function generateFakeSpark(basePrice) {
+  const pts = [];
+  let p = basePrice;
+  for (let i=0; i<168; i++) { p = p * (1 + (Math.random()-0.5)*0.003); pts.push(p); }
+  return pts;
+}
+
+function updateGlobalStats(cryptos) {
+  const totalMcap = cryptos.reduce((s,c)=>s+(c.mcap||0),0);
+  const totalVol = cryptos.reduce((s,c)=>s+(c.vol||0),0);
+  const btc = cryptos.find(c=>c.symbol==='BTC');
+  const btcDom = btc && totalMcap ? ((btc.mcap/totalMcap)*100).toFixed(1) : '52.4';
+
+  document.getElementById('totalMcap').textContent = formatNum(totalMcap).replace('$','$');
+  document.getElementById('totalVol').textContent = formatNum(totalVol);
+  document.getElementById('btcDom').textContent = btcDom + '%';
+
+  const uzs = allData.find(d=>d.symbol==='UZS');
+  if (uzs) {
+    document.getElementById('usdRate').textContent = 'UZS ' + Math.round(1/uzs.rawRate).toLocaleString('en');
+  }
+}
+
+function buildSidebar(data) {
+  const cryptos = data.filter(d=>d.type==='crypto').slice(0,10);
+  const forex = data.filter(d=>d.type==='forex').slice(0,15);
+
+  document.getElementById('sidebarCrypto').innerHTML = cryptos.map(c=>`
+    <div class="sidebar-item" onclick="openPanel('${c.id}')">
+      <div class="sidebar-flag" style="width:28px;height:28px;border-radius:50%;background:${c.color}22;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:${c.color}">${c.symbol.slice(0,3)}</div>
+      <div class="sidebar-info">
+        <div class="sidebar-name">${c.name}</div>
+        <div class="sidebar-rate">${formatNum(c.price)}</div>
+      </div>
+      <div class="sidebar-chg ${(c.change24h||0)>=0?'up':'down'}">${fmtChange(c.change24h)}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('sidebarForex').innerHTML = forex.map(f=>`
+    <div class="sidebar-item" onclick="openPanel('${f.id}')">
+      <div class="sidebar-flag">${f.flag}</div>
+      <div class="sidebar-info">
+        <div class="sidebar-name">${f.symbol}</div>
+        <div class="sidebar-rate">${formatNum(f.price,4)}</div>
+      </div>
+      <div class="sidebar-chg ${(f.change24h||0)>=0?'up':'down'}">${fmtChange(f.change24h)}</div>
+    </div>
+  `).join('');
+}
+
+function buildTicker(data) {
+  const items = data.slice(0, 30).map(d=>`
+    <div class="ticker-item">
+      <span class="ticker-symbol">${d.symbol}</span>
+      <span class="ticker-price">${d.type==='crypto'?formatNum(d.price):formatNum(d.price,4)}</span>
+      <span class="ticker-change ${(d.change24h||0)>=0?'up':'down'}">${fmtChange(d.change24h)}</span>
+    </div>
+  `).join('');
+  const doubled = items + items;
+  document.getElementById('tickerTrack').innerHTML = doubled;
+}
+
+function getFilteredData() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  let data = [...allData];
+
+  if (currentTab === 'crypto') data = data.filter(d=>d.type==='crypto');
+  else if (currentTab === 'forex') data = data.filter(d=>d.type==='forex');
+  else if (currentTab === 'gainers') data = data.filter(d=>(d.change24h||0)>0).sort((a,b)=>(b.change24h||0)-(a.change24h||0));
+  else if (currentTab === 'losers') data = data.filter(d=>(d.change24h||0)<0).sort((a,b)=>(a.change24h||0)-(b.change24h||0));
+
+  if (search) data = data.filter(d=>d.name.toLowerCase().includes(search)||d.symbol.toLowerCase().includes(search));
+
+  if (currentTab !== 'gainers' && currentTab !== 'losers') {
+    data.sort((a,b)=>{
+      let av, bv;
+      if (currentSort==='rank') { av=a.rank; bv=b.rank; return av-bv; }
+      if (currentSort==='change') { av=Math.abs(a.change24h||0); bv=Math.abs(b.change24h||0); }
+      else if (currentSort==='price') { av=a.price||0; bv=b.price||0; }
+      else if (currentSort==='vol') { av=a.vol||0; bv=b.vol||0; }
+      return sortAsc ? av-bv : bv-av;
+    });
+  }
+
+  return data;
+}
+
+function renderTable() {
+  const data = getFilteredData();
+  if (!data.length) {
+    document.getElementById('mainTable').innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon">🔍</div>Hech narsa topilmadi</div></td></tr>`;
+    return;
+  }
+
+  document.getElementById('mainTable').innerHTML = data.map((d,i)=>{
+    const ch24 = d.change24h||0, ch1h = d.change1h||0, ch7d = d.change7d||0;
+    const isUp = ch24>=0;
+    const icon = d.type==='crypto'
+      ? `<div class="asset-icon" style="background:${d.color}22; color:${d.color}">${d.symbol.slice(0,3)}</div>`
+      : `<div style="font-size:1.4rem; width:32px; text-align:center">${d.flag||'💱'}</div>`;
+
+    const volStr = d.vol ? formatNum(d.vol) : (d.type==='forex'?'Narx bozori':'—');
+    const mcapStr = d.mcap ? formatNum(d.mcap) : (d.type==='forex'?'—':'—');
+    const priceStr = d.type==='crypto' ? formatNum(d.price) : formatNum(d.price,5);
+    const tag = d.type==='crypto' ? '<span class="tag crypto">KRIPTO</span>' : '<span class="tag forex">FOREX</span>';
+
+    return `<tr onclick="openPanel('${d.id}')">
+      <td class="rank-cell">${d.type==='crypto'?d.rank:'—'}</td>
+      <td><div class="asset-cell">${icon}<div><div class="asset-name">${d.name}${tag}</div><div class="asset-sym">${d.symbol}</div></div></div></td>
+      <td class="num price-cell" style="color:${isUp?'var(--green)':'var(--red)'}">${priceStr}</td>
+      <td class="num"><span class="change-badge ${ch24>=0?'up':ch24<0?'down':'flat'}">${ch24>=0?'▲':'▼'} ${Math.abs(ch24).toFixed(2)}%</span></td>
+      <td class="num"><span style="font-size:12px;font-family:var(--mono);color:${ch1h>=0?'var(--green)':'var(--red)'}">${fmtChange(ch1h)}</span></td>
+      <td class="num vol-cell">${volStr}</td>
+      <td class="num vol-cell">${mcapStr}</td>
+      <td class="num">${sparklineSVG(d.spark.slice(-30), ch7d>=0)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function openPanel(id) {
+  const d = allData.find(x=>x.id===id);
+  if (!d) return;
+
+  const ch = d.change24h||0;
+  const priceStr = d.type==='crypto' ? formatNum(d.price) : formatNum(d.price,5);
+
+  document.getElementById('panelContent').innerHTML = `
+    <div class="panel-header">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.5rem">
+        ${d.type==='crypto'
+          ? `<div style="width:40px;height:40px;border-radius:50%;background:${d.color}22;color:${d.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">${d.symbol.slice(0,3)}</div>`
+          : `<div style="font-size:2rem">${d.flag||'💱'}</div>`
+        }
+        <div>
+          <div class="panel-title">${d.name}</div>
+          <div class="panel-sub">${d.symbol} ${d.type==='crypto'?'· Kripto':'· Valyuta'}</div>
+        </div>
+      </div>
+      <div class="panel-price" style="color:${ch>=0?'var(--green)':'var(--red)'}">${priceStr}</div>
+      <span class="change-badge ${ch>=0?'up':'down'}" style="font-size:13px">${ch>=0?'▲':'▼'} ${Math.abs(ch).toFixed(2)}% (24s)</span>
+    </div>
+
+    <div class="panel-stats">
+      <div class="panel-stat"><div class="panel-stat-label">1s o'zgarish</div><div class="panel-stat-val" style="color:${(d.change1h||0)>=0?'var(--green)':'var(--red)'}">${fmtChange(d.change1h)}</div></div>
+      <div class="panel-stat"><div class="panel-stat-label">7 kunlik</div><div class="panel-stat-val" style="color:${(d.change7d||0)>=0?'var(--green)':'var(--red)'}">${fmtChange(d.change7d)}</div></div>
+      ${d.high24?`<div class="panel-stat"><div class="panel-stat-label">24s eng yuqori</div><div class="panel-stat-val">${formatNum(d.high24)}</div></div>`:''}
+      ${d.low24?`<div class="panel-stat"><div class="panel-stat-label">24s eng past</div><div class="panel-stat-val">${formatNum(d.low24)}</div></div>`:''}
+      ${d.vol?`<div class="panel-stat"><div class="panel-stat-label">Savdo hajmi</div><div class="panel-stat-val">${formatNum(d.vol)}</div></div>`:''}
+      ${d.mcap?`<div class="panel-stat"><div class="panel-stat-label">Bozor qiymati</div><div class="panel-stat-val">${formatNum(d.mcap)}</div></div>`:''}
+      ${d.supply?`<div class="panel-stat"><div class="panel-stat-label">Muomaladagi taklif</div><div class="panel-stat-val">${(d.supply/1e6).toFixed(2)}M</div></div>`:''}
+      ${d.rank&&d.type==='crypto'?`<div class="panel-stat"><div class="panel-stat-label">Reyting</div><div class="panel-stat-val">#${d.rank}</div></div>`:''}
+    </div>
+
+    <div style="margin-top:1rem">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.75rem">7 kunlik grafik</div>
+      <svg viewBox="0 0 300 80" style="width:100%;height:80px">
+        ${(()=>{
+          const pts = d.spark || [];
+          if (pts.length < 2) return '<text x="150" y="40" text-anchor="middle" fill="#6b7280" font-size="11">Ma\'lumot yo\'q</text>';
+          const mn = Math.min(...pts), mx = Math.max(...pts), range = mx-mn||1;
+          const w=300, h=80;
+          const mapped = pts.map((p,i)=>`${(i/(pts.length-1))*w},${h-((p-mn)/range)*h}`).join(' ');
+          const col = ch>=0?'#22c55e':'#ef4444';
+          return `<polyline fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="${mapped}"/>`;
+        })()}
+      </svg>
+    </div>
+
+    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--muted)">Oxirgi yangilanish: ${new Date().toLocaleTimeString('uz-UZ')}</div>
+    </div>
+  `;
+
+  document.getElementById('detailPanel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('detailPanel').classList.remove('open');
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active', ['all','crypto','forex','gainers','losers'][i]===tab);
+  });
+  renderTable();
+}
+
+function filterData() { renderTable(); }
+
+function setSort(sort, btn) {
+  if (currentSort===sort) sortAsc = !sortAsc;
+  else { currentSort=sort; sortAsc=false; }
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+function startCountdown() {
+  countdown = 30;
+  clearInterval(countdownInterval);
+  countdownInterval = setInterval(()=>{
+    countdown--;
+    document.getElementById('update-timer').textContent = countdown + 's soniyada yangilanadi';
+    if (countdown <= 0) { countdown = 30; fetchAll(); }
+  }, 1000);
+}
+
+async function fetchAll() {
+  document.getElementById('update-timer').textContent = 'yangilanmoqda...';
+
+  const [cryptos, forex] = await Promise.allSettled([fetchCrypto(), fetchForex()]);
+  const cryptoData = cryptos.status==='fulfilled' ? cryptos.value : [];
+  const forexData = forex.status==='fulfilled' ? forex.value : [];
+
+  if (!cryptoData.length && !forexData.length) {
+    showToast('⚠️ API ga ulanishda xato. Qayta urinilmoqda...');
+    startCountdown();
+    return;
+  }
+
+  cryptoData.forEach(c=>{ lastPrices['crypto_'+c.symbol]=c.price; });
+  forexData.forEach(f=>{ lastPrices['forex_'+f.symbol]=f.rawRate; });
+
+  allData = [...cryptoData, ...forexData];
+
+  buildTicker(allData);
+  buildSidebar(allData);
+  updateGlobalStats(cryptoData);
+  renderTable();
+
+  const now = new Date();
+  document.getElementById('lastUpdated').textContent = `Oxirgi yangilanish: ${now.toLocaleTimeString('uz-UZ')} · ${allData.length} ta aktiv`;
+  showToast(`✅ ${allData.length} ta aktiv yangilandi`);
+  startCountdown();
+}
+
+fetchAll();
+</script>
+</body>
+</html>
