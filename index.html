@@ -6,6 +6,7 @@
 <title>MarketPulse — Valyuta & Kripto Kurslar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -212,6 +213,7 @@
     padding: 10px 16px; text-align: left;
     font-size: 11px; color: var(--muted); letter-spacing: 0.5px;
     text-transform: uppercase; font-weight: 500; white-space: nowrap;
+    cursor: pointer;
   }
   th:hover { color: var(--muted2); }
   th.num, td.num { text-align: right; }
@@ -256,28 +258,127 @@
   /* DETAIL PANEL */
   .detail-panel {
     position: fixed; right: 0; top: 60px; bottom: 0;
-    width: 340px; background: var(--surface);
+    width: 420px; background: var(--surface);
     border-left: 1px solid var(--border2);
-    padding: 1.5rem; overflow-y: auto;
-    transform: translateX(100%); transition: transform 0.25s ease;
+    overflow-y: auto;
+    transform: translateX(100%); transition: transform 0.3s cubic-bezier(.4,0,.2,1);
     z-index: 50;
+    box-shadow: -8px 0 40px rgba(0,0,0,0.4);
   }
   .detail-panel.open { transform: translateX(0); }
-  .panel-close {
-    position: absolute; top: 1rem; right: 1rem;
-    background: var(--surface2); border: 1px solid var(--border2);
-    color: var(--muted2); border-radius: 6px;
-    width: 28px; height: 28px; cursor: pointer; font-size: 16px;
-    display: flex; align-items: center; justify-content: center;
+
+  .panel-topbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
   }
-  .panel-header { margin-bottom: 1.5rem; padding-right: 2rem; }
-  .panel-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 4px; }
-  .panel-sub { color: var(--muted); font-size: 13px; }
-  .panel-price { font-size: 2rem; font-weight: 700; font-family: var(--mono); margin: 1rem 0 0.25rem; }
-  .panel-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 1rem 0; }
-  .panel-stat { background: var(--bg); padding: 0.75rem; }
-  .panel-stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .panel-stat-val { font-size: 13px; font-weight: 500; font-family: var(--mono); }
+  .panel-topbar-title { font-size: 13px; font-weight: 600; color: var(--muted2); }
+  .panel-close {
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--muted2); border-radius: 7px;
+    width: 28px; height: 28px; cursor: pointer; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .panel-close:hover { color: var(--text); border-color: var(--muted2); }
+
+  .panel-hero {
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-asset-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+  .panel-big-icon {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 800; flex-shrink: 0;
+  }
+  .panel-asset-name { font-size: 1.1rem; font-weight: 700; }
+  .panel-asset-sym { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+  .panel-price-big { font-size: 2.2rem; font-weight: 800; font-family: var(--mono); letter-spacing: -1px; }
+  .panel-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .panel-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 8px;
+    font-size: 12px; font-family: var(--mono); font-weight: 600;
+  }
+  .panel-badge.up { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+  .panel-badge.down { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+  .panel-badge.neutral { background: rgba(255,255,255,0.05); color: var(--muted2); border: 1px solid var(--border2); }
+
+  /* PERIOD TABS */
+  .period-tabs {
+    display: flex; gap: 3px; padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .period-btn {
+    flex: 1; padding: 5px; border: 1px solid var(--border2);
+    background: transparent; color: var(--muted2);
+    border-radius: 6px; font-size: 11px; font-weight: 600;
+    cursor: pointer; font-family: var(--mono); transition: all .15s;
+  }
+  .period-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .period-btn:hover:not(.active) { color: var(--text); background: var(--surface2); }
+
+  /* CHART AREA */
+  .panel-chart-wrap {
+    padding: 0.75rem 1.25rem 0;
+    position: relative;
+  }
+  .panel-chart-canvas { width: 100% !important; height: 160px !important; }
+  .chart-loading { text-align: center; padding: 3rem; color: var(--muted); font-size: 12px; }
+
+  /* STATS GRID */
+  .panel-stats-section { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+  .panel-stats-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.7px; font-weight: 600; margin-bottom: 0.75rem; }
+  .panel-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .psg-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+    transition: border-color .15s;
+  }
+  .psg-item:hover { border-color: var(--border2); }
+  .psg-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 5px; }
+  .psg-val { font-size: 13px; font-weight: 600; font-family: var(--mono); }
+  .psg-val.up { color: var(--green); }
+  .psg-val.down { color: var(--red); }
+
+  /* HIGH/LOW BAR */
+  .hl-section { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+  .hl-row { display: flex; align-items: center; gap: 10px; margin-top: 0.75rem; }
+  .hl-label { font-size: 11px; font-family: var(--mono); color: var(--muted2); width: 60px; }
+  .hl-bar-wrap { flex: 1; height: 5px; background: var(--border2); border-radius: 3px; position: relative; }
+  .hl-bar-fill { position: absolute; top: 0; left: 0; height: 100%; border-radius: 3px; }
+  .hl-current-dot {
+    position: absolute; top: 50%; transform: translate(-50%,-50%);
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid var(--text);
+  }
+  .hl-val { font-size: 11px; font-family: var(--mono); color: var(--muted2); width: 70px; text-align: right; }
+
+  /* PERFORMANCE BARS */
+  .perf-section { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+  .perf-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .perf-label { font-size: 11px; color: var(--muted2); width: 40px; font-family: var(--mono); }
+  .perf-bar-wrap { flex: 1; height: 6px; background: var(--border2); border-radius: 3px; overflow: hidden; }
+  .perf-bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+  .perf-pct { font-size: 11px; font-family: var(--mono); font-weight: 600; width: 55px; text-align: right; }
+
+  /* CONVERTER */
+  .converter-section { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+  .conv-row { display: flex; align-items: center; gap: 8px; margin-top: 0.75rem; }
+  .conv-input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 7px; padding: 8px 10px;
+    color: var(--text); font-family: var(--mono); font-size: 13px;
+    outline: none; transition: border .15s;
+  }
+  .conv-input:focus { border-color: var(--accent); }
+  .conv-sym { font-size: 12px; font-weight: 600; color: var(--muted2); min-width: 40px; text-align: center; font-family: var(--mono); }
+  .conv-eq { font-size: 18px; color: var(--muted); }
+  .conv-result { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-family: var(--mono); font-size: 13px; color: var(--accent2); }
 
   /* LOADING */
   .skeleton {
@@ -436,7 +537,10 @@
 
 <!-- DETAIL PANEL -->
 <div class="detail-panel" id="detailPanel">
-  <button class="panel-close" onclick="closePanel()">✕</button>
+  <div class="panel-topbar">
+    <span class="panel-topbar-title" id="panelTopTitle">Aktiv ma'lumoti</span>
+    <button class="panel-close" onclick="closePanel()">✕</button>
+  </div>
   <div id="panelContent"></div>
 </div>
 
@@ -717,65 +821,265 @@ function renderTable() {
   }).join('');
 }
 
+let panelChartInstance = null;
+
 function openPanel(id) {
   const d = allData.find(x=>x.id===id);
   if (!d) return;
 
+  document.getElementById('panelTopTitle').textContent = d.name + ' · ' + d.symbol;
+
   const ch = d.change24h||0;
-  const priceStr = d.type==='crypto' ? formatNum(d.price) : formatNum(d.price,5);
+  const ch1h = d.change1h||0;
+  const ch7d = d.change7d||0;
+  const isUp = ch >= 0;
+  const priceStr = d.type==='crypto' ? formatNum(d.price) : formatNum(d.price, 5);
+  const color = d.color || '#f59e0b';
+
+  // High/low bar position
+  const hlPct = (d.high24 && d.low24 && d.price)
+    ? Math.max(0, Math.min(100, ((d.price - d.low24) / (d.high24 - d.low24)) * 100))
+    : 50;
+
+  // Performance bars max
+  const maxPerf = Math.max(Math.abs(ch1h), Math.abs(ch), Math.abs(ch7d), 0.01);
 
   document.getElementById('panelContent').innerHTML = `
-    <div class="panel-header">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.5rem">
+    <!-- HERO -->
+    <div class="panel-hero">
+      <div class="panel-asset-row">
         ${d.type==='crypto'
-          ? `<div style="width:40px;height:40px;border-radius:50%;background:${d.color}22;color:${d.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">${d.symbol.slice(0,3)}</div>`
-          : `<div style="font-size:2rem">${d.flag||'💱'}</div>`
+          ? `<div class="panel-big-icon" style="background:${color}20;color:${color}">${d.symbol.slice(0,3)}</div>`
+          : `<div class="panel-big-icon" style="font-size:2rem;background:rgba(245,158,11,0.1)">${d.flag||'💱'}</div>`
         }
         <div>
-          <div class="panel-title">${d.name}</div>
-          <div class="panel-sub">${d.symbol} ${d.type==='crypto'?'· Kripto':'· Valyuta'}</div>
+          <div class="panel-asset-name">${d.name}</div>
+          <div class="panel-asset-sym">${d.symbol} ${d.type==='crypto'?'· Kripto · #'+d.rank:'· Valyuta'}</div>
         </div>
       </div>
-      <div class="panel-price" style="color:${ch>=0?'var(--green)':'var(--red)'}">${priceStr}</div>
-      <span class="change-badge ${ch>=0?'up':'down'}" style="font-size:13px">${ch>=0?'▲':'▼'} ${Math.abs(ch).toFixed(2)}% (24s)</span>
+      <div class="panel-price-big" style="color:${isUp?'var(--green)':'var(--red)'}">${priceStr}</div>
+      <div class="panel-badges">
+        <span class="panel-badge ${ch>=0?'up':'down'}">${ch>=0?'▲':'▼'} ${Math.abs(ch).toFixed(2)}% · 24s</span>
+        <span class="panel-badge ${ch1h>=0?'up':'down'}">${ch1h>=0?'▲':'▼'} ${Math.abs(ch1h).toFixed(2)}% · 1s</span>
+        <span class="panel-badge ${ch7d>=0?'up':'down'}">${ch7d>=0?'▲':'▼'} ${Math.abs(ch7d).toFixed(2)}% · 7k</span>
+      </div>
     </div>
 
-    <div class="panel-stats">
-      <div class="panel-stat"><div class="panel-stat-label">1s o'zgarish</div><div class="panel-stat-val" style="color:${(d.change1h||0)>=0?'var(--green)':'var(--red)'}">${fmtChange(d.change1h)}</div></div>
-      <div class="panel-stat"><div class="panel-stat-label">7 kunlik</div><div class="panel-stat-val" style="color:${(d.change7d||0)>=0?'var(--green)':'var(--red)'}">${fmtChange(d.change7d)}</div></div>
-      ${d.high24?`<div class="panel-stat"><div class="panel-stat-label">24s eng yuqori</div><div class="panel-stat-val">${formatNum(d.high24)}</div></div>`:''}
-      ${d.low24?`<div class="panel-stat"><div class="panel-stat-label">24s eng past</div><div class="panel-stat-val">${formatNum(d.low24)}</div></div>`:''}
-      ${d.vol?`<div class="panel-stat"><div class="panel-stat-label">Savdo hajmi</div><div class="panel-stat-val">${formatNum(d.vol)}</div></div>`:''}
-      ${d.mcap?`<div class="panel-stat"><div class="panel-stat-label">Bozor qiymati</div><div class="panel-stat-val">${formatNum(d.mcap)}</div></div>`:''}
-      ${d.supply?`<div class="panel-stat"><div class="panel-stat-label">Muomaladagi taklif</div><div class="panel-stat-val">${(d.supply/1e6).toFixed(2)}M</div></div>`:''}
-      ${d.rank&&d.type==='crypto'?`<div class="panel-stat"><div class="panel-stat-label">Reyting</div><div class="panel-stat-val">#${d.rank}</div></div>`:''}
+    <!-- PERIOD TABS -->
+    <div class="period-tabs">
+      <button class="period-btn active" onclick="switchPeriod(this,7,'${id}')">7K</button>
+      <button class="period-btn" onclick="switchPeriod(this,1,'${id}')">1K</button>
+      <button class="period-btn" onclick="switchPeriod(this,14,'${id}')">14K</button>
+      <button class="period-btn" onclick="switchPeriod(this,30,'${id}')">1O</button>
     </div>
 
-    <div style="margin-top:1rem">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.75rem">7 kunlik grafik</div>
-      <svg viewBox="0 0 300 80" style="width:100%;height:80px">
-        ${(()=>{
-          const pts = d.spark || [];
-          if (pts.length < 2) return '<text x="150" y="40" text-anchor="middle" fill="#6b7280" font-size="11">Ma\'lumot yo\'q</text>';
-          const mn = Math.min(...pts), mx = Math.max(...pts), range = mx-mn||1;
-          const w=300, h=80;
-          const mapped = pts.map((p,i)=>`${(i/(pts.length-1))*w},${h-((p-mn)/range)*h}`).join(' ');
-          const col = ch>=0?'#22c55e':'#ef4444';
-          return `<polyline fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="${mapped}"/>`;
-        })()}
-      </svg>
+    <!-- CHART -->
+    <div class="panel-chart-wrap">
+      <canvas id="panelChartCanvas" class="panel-chart-canvas"></canvas>
     </div>
 
-    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border)">
-      <div style="font-size:11px;color:var(--muted)">Oxirgi yangilanish: ${new Date().toLocaleTimeString('uz-UZ')}</div>
+    <!-- PERFORMANCE BARS -->
+    <div class="perf-section">
+      <div class="panel-stats-title">Davriy o'zgarish</div>
+      <div class="perf-row">
+        <div class="perf-label">1 soat</div>
+        <div class="perf-bar-wrap">
+          <div class="perf-bar-fill" style="width:${Math.abs(ch1h)/maxPerf*100}%;background:${ch1h>=0?'var(--green)':'var(--red)'}"></div>
+        </div>
+        <div class="perf-pct" style="color:${ch1h>=0?'var(--green)':'var(--red)'}">${ch1h>=0?'+':''}${ch1h.toFixed(2)}%</div>
+      </div>
+      <div class="perf-row">
+        <div class="perf-label">24 soat</div>
+        <div class="perf-bar-wrap">
+          <div class="perf-bar-fill" style="width:${Math.abs(ch)/maxPerf*100}%;background:${ch>=0?'var(--green)':'var(--red)'}"></div>
+        </div>
+        <div class="perf-pct" style="color:${ch>=0?'var(--green)':'var(--red)'}">${ch>=0?'+':''}${ch.toFixed(2)}%</div>
+      </div>
+      <div class="perf-row" style="margin-bottom:0">
+        <div class="perf-label">7 kun</div>
+        <div class="perf-bar-wrap">
+          <div class="perf-bar-fill" style="width:${Math.abs(ch7d)/maxPerf*100}%;background:${ch7d>=0?'var(--green)':'var(--red)'}"></div>
+        </div>
+        <div class="perf-pct" style="color:${ch7d>=0?'var(--green)':'var(--red)'}">${ch7d>=0?'+':''}${ch7d.toFixed(2)}%</div>
+      </div>
+    </div>
+
+    <!-- STATS GRID -->
+    <div class="panel-stats-section">
+      <div class="panel-stats-title">Asosiy ko'rsatkichlar</div>
+      <div class="panel-stats-grid">
+        ${d.high24?`<div class="psg-item"><div class="psg-label">24s yuqori</div><div class="psg-val up">${formatNum(d.high24)}</div></div>`:''}
+        ${d.low24?`<div class="psg-item"><div class="psg-label">24s past</div><div class="psg-val down">${formatNum(d.low24)}</div></div>`:''}
+        ${d.vol?`<div class="psg-item"><div class="psg-label">Savdo hajmi</div><div class="psg-val">${formatNum(d.vol)}</div></div>`:''}
+        ${d.mcap?`<div class="psg-item"><div class="psg-label">Bozor qiymati</div><div class="psg-val">${formatNum(d.mcap)}</div></div>`:''}
+        ${d.supply?`<div class="psg-item"><div class="psg-label">Taklif</div><div class="psg-val">${(d.supply/1e6).toFixed(1)}M</div></div>`:''}
+        ${d.rank&&d.type==='crypto'?`<div class="psg-item"><div class="psg-label">Global reyting</div><div class="psg-val">#${d.rank}</div></div>`:''}
+        <div class="psg-item"><div class="psg-label">Tur</div><div class="psg-val">${d.type==='crypto'?'Kripto':'Valyuta'}</div></div>
+        <div class="psg-item"><div class="psg-label">Symbol</div><div class="psg-val">${d.symbol}</div></div>
+      </div>
+    </div>
+
+    <!-- HIGH/LOW BAR -->
+    ${d.high24&&d.low24?`
+    <div class="hl-section">
+      <div class="panel-stats-title">24 soatlik diapazon</div>
+      <div class="hl-row">
+        <div class="hl-label" style="color:var(--red)">${formatNum(d.low24)}</div>
+        <div class="hl-bar-wrap">
+          <div class="hl-bar-fill" style="width:100%;background:linear-gradient(to right,var(--red),var(--green))"></div>
+          <div class="hl-current-dot" style="left:${hlPct}%;background:var(--accent)"></div>
+        </div>
+        <div class="hl-val" style="color:var(--green)">${formatNum(d.high24)}</div>
+      </div>
+      <div style="text-align:center;font-size:11px;color:var(--muted2);margin-top:6px;font-family:var(--mono)">
+        Joriy narx diapazonning <span style="color:var(--accent2)">${hlPct.toFixed(1)}%</span> qismida
+      </div>
+    </div>`:''}
+
+    <!-- CONVERTER -->
+    <div class="converter-section">
+      <div class="panel-stats-title">Konvertor</div>
+      <div class="conv-row">
+        <input class="conv-input" id="convFrom" type="number" value="1" oninput="calcConv('${id}')">
+        <div class="conv-sym">${d.symbol}</div>
+        <div class="conv-eq">→</div>
+        <div class="conv-result" id="convTo">${d.price ? '$'+(d.price*1).toFixed(2) : '—'}</div>
+        <div class="conv-sym">USD</div>
+      </div>
+      <div class="conv-row" style="margin-top:6px">
+        <input class="conv-input" id="convFromUSD" type="number" value="100" oninput="calcConvUSD('${id}')">
+        <div class="conv-sym">USD</div>
+        <div class="conv-eq">→</div>
+        <div class="conv-result" id="convToAsset">${d.price ? (100/d.price).toFixed(6) : '—'}</div>
+        <div class="conv-sym">${d.symbol}</div>
+      </div>
+    </div>
+
+    <div style="padding:0.75rem 1.25rem;font-size:10px;color:var(--muted);border-top:1px solid var(--border)">
+      Yangilangan: ${new Date().toLocaleTimeString('uz-UZ')} · Ma'lumot: ${d.type==='crypto'?'CoinGecko':'ExchangeRate API'}
     </div>
   `;
+
+  // Draw chart
+  drawPanelChart(d, 7);
 
   document.getElementById('detailPanel').classList.add('open');
 }
 
+function switchPeriod(btn, days, id) {
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const d = allData.find(x=>x.id===id);
+  if (d) drawPanelChart(d, days);
+}
+
+function drawPanelChart(d, days) {
+  const ctx = document.getElementById('panelChartCanvas');
+  if (!ctx) return;
+
+  if (panelChartInstance) { panelChartInstance.destroy(); panelChartInstance = null; }
+
+  let spark = d.spark || [];
+  // Slice based on period (168 points = 7 days of hourly data)
+  const pointsPerDay = Math.ceil(spark.length / 7);
+  const sliced = spark.slice(-Math.min(days * pointsPerDay, spark.length));
+
+  if (sliced.length < 2) return;
+
+  const isUp = (d.change24h||0) >= 0;
+  const color = isUp ? '#22c55e' : '#ef4444';
+  const colorDim = isUp ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)';
+
+  const labels = sliced.map((_,i) => {
+    if (days <= 1) return i + 'h';
+    const day = Math.floor(i / pointsPerDay);
+    return day + 'k';
+  });
+
+  panelChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: sliced,
+        borderColor: color,
+        backgroundColor: colorDim,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: color,
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 500, easing: 'easeInOutQuart' },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(17,18,20,0.95)',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: '#6b7280',
+          bodyColor: '#f0f0f0',
+          padding: 10,
+          callbacks: {
+            label: ctx => {
+              const v = ctx.parsed.y;
+              if (v > 1) return '  $' + v.toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2});
+              return '  $' + v.toFixed(6);
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          grid: { display: false },
+          ticks: {
+            color: '#6b7280', font: { size: 9, family: 'JetBrains Mono' },
+            maxTicksLimit: 6, maxRotation: 0
+          }
+        },
+        y: {
+          display: true,
+          position: 'right',
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: {
+            color: '#6b7280',
+            font: { size: 9, family: 'JetBrains Mono' },
+            maxTicksLimit: 5,
+            callback: v => d.price > 100 ? '$'+v.toFixed(0) : '$'+v.toFixed(d.price>1?2:4)
+          }
+        }
+      }
+    }
+  });
+}
+
+function calcConv(id) {
+  const d = allData.find(x=>x.id===id);
+  if (!d || !d.price) return;
+  const amt = parseFloat(document.getElementById('convFrom').value) || 0;
+  document.getElementById('convTo').textContent = '$' + (amt * d.price).toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function calcConvUSD(id) {
+  const d = allData.find(x=>x.id===id);
+  if (!d || !d.price) return;
+  const usd = parseFloat(document.getElementById('convFromUSD').value) || 0;
+  const result = usd / d.price;
+  document.getElementById('convToAsset').textContent = result > 0.001 ? result.toFixed(4) : result.toFixed(8);
+}
+
 function closePanel() {
   document.getElementById('detailPanel').classList.remove('open');
+  if (panelChartInstance) { panelChartInstance.destroy(); panelChartInstance = null; }
 }
 
 function switchTab(tab) {
