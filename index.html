@@ -128,6 +128,9 @@
     max-height: calc(100vh - 97px);
     position: sticky; top: 97px;
   }
+  @media (max-width: 640px) {
+    .sidebar { top: 52px; max-height: calc(100vh - 52px); }
+  }
   .sidebar-section { margin-bottom: 0.5rem; }
   .sidebar-title {
     font-size: 10px; color: var(--muted); letter-spacing: 1px;
@@ -206,8 +209,8 @@
   }
 
   /* TABLE */
-  .table-wrap { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-  table { width: 100%; border-collapse: collapse; }
+  .table-wrap { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; min-width: 500px; }
   thead tr { background: var(--surface); border-bottom: 1px solid var(--border2); }
   th {
     padding: 10px 16px; text-align: left;
@@ -400,16 +403,87 @@
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   /* RESPONSIVE */
+
+  /* Tablet: 900px */
   @media (max-width: 900px) {
     .main { grid-template-columns: 1fr; }
     .sidebar { display: none; }
-    .stats-bar { grid-template-columns: repeat(2,1fr); }
-    .detail-panel { width: 100%; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .detail-panel { width: 100%; top: 0; border-left: none; }
+    .toolbar { flex-wrap: wrap; gap: 0.75rem; }
+    .search-box { max-width: 100%; min-width: 0; flex: 1 1 200px; }
+    .filter-group { flex-wrap: wrap; }
+    /* Hide less important table columns */
+    th:nth-child(6), td:nth-child(6),
+    th:nth-child(7), td:nth-child(7) { display: none; }
   }
-  @media (max-width: 600px) {
-    header { padding: 0 1rem; }
-    .content { padding: 1rem; }
+
+  /* Mobile: 640px */
+  @media (max-width: 640px) {
+    header { padding: 0 1rem; height: 52px; }
+    #update-timer { display: none; }
+    #clock { font-size: 11px; }
+
     .stats-bar { grid-template-columns: 1fr 1fr; }
+    .stat-card { padding: 0.75rem 1rem; }
+    .stat-value { font-size: 0.95rem; }
+
+    .content { padding: 0.75rem; }
+
+    .tabs {
+      width: 100%; overflow-x: auto;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab-btn { padding: 6px 12px; font-size: 12px; white-space: nowrap; }
+
+    .toolbar { gap: 0.5rem; }
+    .search-box { width: 100%; max-width: 100%; flex: 1 1 100%; }
+    .filter-group { width: 100%; overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; }
+    .filter-group::-webkit-scrollbar { display: none; }
+    .filter-btn { white-space: nowrap; flex-shrink: 0; padding: 6px 10px; font-size: 11px; }
+    .sort-select { width: 100%; }
+
+    /* Table: keep only key columns */
+    th:nth-child(1), td:nth-child(1) { display: none; } /* rank */
+    th:nth-child(5), td:nth-child(5) { display: none; } /* 1h */
+    th:nth-child(6), td:nth-child(6) { display: none; } /* vol */
+    th:nth-child(7), td:nth-child(7) { display: none; } /* mcap */
+    th:nth-child(8), td:nth-child(8) { display: none; } /* spark */
+
+    th { padding: 8px 10px; font-size: 10px; }
+    td { padding: 9px 10px; font-size: 12px; }
+
+    .asset-name { font-size: 12px; }
+    .asset-sym { font-size: 10px; }
+    .asset-icon { width: 28px; height: 28px; font-size: 11px; }
+
+    /* Panel full-screen on mobile */
+    .detail-panel { width: 100%; top: 0; border-radius: 0; }
+    .panel-price-big { font-size: 1.7rem; }
+    .panel-badges { gap: 6px; }
+    .panel-badge { font-size: 11px; padding: 3px 8px; }
+    .panel-stats-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+    .psg-val { font-size: 12px; }
+    .conv-row { flex-wrap: wrap; gap: 6px; }
+    .conv-input, .conv-result { min-width: 0; flex: 1 1 80px; }
+    .panel-chart-canvas { height: 130px !important; }
+
+    /* Period tabs scrollable */
+    .period-tabs { overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; gap: 4px; }
+    .period-tabs::-webkit-scrollbar { display: none; }
+    .period-btn { flex-shrink: 0; }
+  }
+
+  /* Small mobile: 400px */
+  @media (max-width: 400px) {
+    .logo { font-size: 1rem; }
+    .live-badge span:not(.live-dot) { display: none; }
+    .stat-card { padding: 0.6rem 0.75rem; }
+    .stat-value { font-size: 0.88rem; }
+    .stat-label { font-size: 10px; }
+    .panel-price-big { font-size: 1.4rem; }
+    .panel-badge { font-size: 10px; padding: 2px 6px; }
   }
 
   /* SCROLLBAR */
